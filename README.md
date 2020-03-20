@@ -39,6 +39,28 @@ Buuuut, you might want to use Node red to do the automation. You either follow t
 
 ~~You need to let the program run, cause it'll gather the data once a day - set the time in the `config.cfg`. A good choice would be 23:30 - the data is updated around 23:00.~~ This was quite annoying while testing, so now the api just runs every half hour. If there's no changes, nothing is send to HA with MQTT.
 
+### Auto run
+
+First compile the file:
+```nim
+nim c -d:ssl -d:release eloverblik.nim
+```
+
+Then edit the config file:
+```nim
+cp config/config_default.cfg config/config.cfg
+nano config/config.cfg
+```
+
+Now adjust the service file and deploy:
+```nim
+nano eloverblik.service
+sudo cp eloverblik.service /etc/systemd/system/eloverblik.service
+sudo systemctl enable eloverblik
+sudo systemctl start eloverblik
+sudo systemctl status eloverblik
+```
+
 
 ### Node red
 
