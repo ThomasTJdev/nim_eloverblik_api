@@ -263,8 +263,8 @@ proc datesPredefined(choice: string, backCount: int, aggreation: string): string
 
   of "Day":
     let
-      sDateTime       = cDateTime - 1.days
-      eDateTime       = cDateTime - backCount.days - 1.days
+      sDateTime       = cDateTime
+      eDateTime       = cDateTime - backCount.days
 
     toDate       = substr($(sDateTime), 0, 9) # YYYY-MM-DD
     fromDate         = substr($(eDateTime), 0, 9) # YYYY-MM-DD
@@ -473,8 +473,8 @@ proc apiRun(ctx: MqttCtx, mqttInfo: MqttInfo, elo: Eloverblik) {.async.} =
   when defined(dev):
     echo json
 
-  if monthNew == true or weekNew == true or dayNew == true:
-    await ctx.publish(mqttInfo.topic, json, 2, true)
+  #if monthNew == true or weekNew == true or dayNew == true:
+  #  await ctx.publish(mqttInfo.topic, json, 2, true)
 
 
 proc apiSetup() {.async.} =
