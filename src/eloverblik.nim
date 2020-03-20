@@ -17,7 +17,7 @@ type
     refreshToken*: string
     actualToken*: string
     meeteringPoint*: string
-    refreshTime*: string
+    #refreshTime*: string
     runOnBoot*: bool
 
   Elperiode* = object
@@ -26,10 +26,16 @@ type
     daysSpecific*: string
     daysSpecificAggr*: string
 
+  Eldata* = object
+    lastDay*: string
+    lastWeek*: string
+    lastMonth*: string
+
 var
   mqttInfo*: MqttInfo
   eloverblik*: Eloverblik
   elperiode*: Elperiode
+  eldata*: Eldata
 
 
 
@@ -56,7 +62,7 @@ proc eloverblikLoadData*(configPath = "config/config.cfg") =
 
     rtoken = dict.getSectionValue("Eloverblik","refreshToken")
     mpoint = dict.getSectionValue("Eloverblik","meeteringPoint")
-    rtime = dict.getSectionValue("Eloverblik","refreshTime")
+    #rtime = dict.getSectionValue("Eloverblik","refreshTime")
     runOnBoot = parseBool(dict.getSectionValue("Eloverblik","runOnBoot"))
 
     dback = dict.getSectionValue("Periode","daysBack")
@@ -74,7 +80,7 @@ proc eloverblikLoadData*(configPath = "config/config.cfg") =
 
   eloverblik.refreshToken = rtoken
   eloverblik.meeteringPoint = mpoint
-  eloverblik.refreshTime = rtime
+  #eloverblik.refreshTime = rtime
   eloverblik.runOnBoot = runOnBoot
 
   elperiode.daysBack = dback
@@ -257,8 +263,8 @@ proc datesPredefined(choice: string, backCount: int, aggreation: string): string
 
   of "Day":
     let
-      sDateTime       = cDateTime
-      eDateTime       = cDateTime - backCount.days
+      sDateTime       = cDateTime - 1.days
+      eDateTime       = cDateTime - backCount.days - 1.days
 
     toDate       = substr($(sDateTime), 0, 9) # YYYY-MM-DD
     fromDate         = substr($(eDateTime), 0, 9) # YYYY-MM-DD
@@ -389,7 +395,7 @@ proc eloverblikTimeSeries*(elo: Eloverblik, elp: Elperiode): string = #JsonNode 
   return ("{\"eloverblik\":{" & resp & "}}")
 
 
-proc nextDayEpoch(): int =
+#[proc nextDayEpoch(): int =
   ## Calculate epoch before run and
   ## returns the seconds.
 
@@ -407,7 +413,7 @@ proc nextDayEpoch(): int =
     definedTime = definedTime + dayEpoch
 
   # Seconds until next monday
-  return (definedTime + dayEpoch) - currEpoch
+  return (definedTime + dayEpoch) - currEpoch]#
 
 
 proc requestData(actualToken, name, meeteringPoint, url: string): string =
@@ -427,63 +433,53 @@ proc apiRun(ctx: MqttCtx, mqttInfo: MqttInfo, elo: Eloverblik) {.async.} =
   let actualToken = eloverblikGetToken(eloverblik.refreshToken)
 
   #let data = eloverblikGetData()
+  var
+    monthNew: bool
+    weekNew: bool
+    dayNew: bool
+    json = "{\"eloverblik\":{"
 
-  let monthUrl  = datesPredefined("Month", 1, "Year")
-  let month     = requestData(actualToken, "month", elo.meeteringPoint, monthUrl)
+  let
+    monthUrl  = datesPredefined("Month", 1, "Year")
+    month     = requestData(actualToken, "month", elo.meeteringPoint, monthUrl)
 
-  let weekUrl   = datesPredefined("Week", 1, "Year")
-  let week      = requestData(actualToken, "week", elo.meeteringPoint, weekUrl)
+    weekUrl   = datesPredefined("Week", 1, "Year")
+    week      = requestData(actualToken, "week", elo.meeteringPoint, weekUrl)
 
-  let dayUrl    = datesPredefined("Day", 1, "Year")
-  let day       = requestData(actualToken, "day", elo.meeteringPoint, dayUrl)
+    dayUrl    = datesPredefined("Day", 1, "Year")
+    day       = requestData(actualToken, "day", elo.meeteringPoint, dayUrl)
 
-  let json      = ("{\"eloverblik\":{" & month & ", " & week & ", " & day & "}}")
+  if month != eldata.lastMonth:
+    monthNew = true
+    eldata.lastMonth = month
+    json.add(month)
 
-  await ctx.publish(mqttInfo.topic, json, 2, true)
+  if week != eldata.lastWeek:
+    weekNew = true
+    eldata.lastWeek = week
+    if monthNew:
+      json.add(",")
+    json.add(week)
+
+  if day != eldata.lastDay:
+    dayNew = true
+    eldata.lastDay = day
+    if monthNew or weekNew:
+      json.add(",")
+    json.add(day)
+
+  json.add("}}")
+
+  when defined(dev):
+    echo json
+
+  if monthNew == true or weekNew == true or dayNew == true:
+    await ctx.publish(mqttInfo.topic, json, 2, true)
 
 
 proc apiSetup() {.async.} =
   ## Run the async API
-  #[
-  let
-    dict = loadConfig("config/config.cfg")
 
-    host = dict.getSectionValue("MQTT","host")
-    port = parseInt(dict.getSectionValue("MQTT","port"))
-    username = dict.getSectionValue("MQTT","username")
-    password = dict.getSectionValue("MQTT","password")
-    topic = dict.getSectionValue("MQTT","topic")
-    ssl = parseBool(dict.getSectionValue("MQTT","ssl"))
-    clientname = dict.getSectionValue("MQTT","clientname")
-
-    rtoken = dict.getSectionValue("Eloverblik","refreshToken")
-    mpoint = dict.getSectionValue("Eloverblik","meeteringPoint")
-    rtime = dict.getSectionValue("Eloverblik","refreshTime")
-    runOnBoot = parseBool(dict.getSectionValue("Eloverblik","runOnBoot"))
-
-    dback = dict.getSectionValue("Periode","daysBack")
-    daggre = dict.getSectionValue("Periode","aggregationBack")
-    sback = dict.getSectionValue("Periode","daysSpecific")
-    saggre = dict.getSectionValue("Periode","aggregationSpecific")
-
-  mqttInfo.host = host
-  mqttInfo.port = port
-  mqttInfo.username = username
-  mqttInfo.password = password
-  mqttInfo.topic = topic
-  mqttInfo.ssl = ssl
-  mqttInfo.clientname = clientname
-
-  eloverblik.refreshToken = rtoken
-  eloverblik.meeteringPoint = mpoint
-  eloverblik.refreshTime = rtime
-  eloverblik.runOnBoot = runOnBoot
-
-  elperiode.daysBack = dback
-  elperiode.daysBackAggr = daggre
-  elperiode.daysSpecific = sback
-  elperiode.daysSpecificAggr = saggre
-  ]#
   eloverblikLoadData()
 
   let ctx = newMqttCtx(mqttInfo.clientname)
@@ -495,7 +491,7 @@ proc apiSetup() {.async.} =
     await apiRun(ctx, mqttInfo, eloverblik)
 
   while true:
-    await sleepAsync(nextDayEpoch() * 1000)
+    await sleepAsync(43200 * 1000)
     await apiRun(ctx, mqttInfo, eloverblik)
 
   await ctx.close()
