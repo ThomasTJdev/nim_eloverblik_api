@@ -12,5 +12,5 @@ installDirs   = @["config", "src"]
 
 # Dependencies
 requires "nim >= 1.0.6"
-requires "nmqtt >= 0.0.1"
+requires "nmqtt >= 0.1.0"
 
