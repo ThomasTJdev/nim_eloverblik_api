@@ -5,7 +5,6 @@ version       = "0.0.1"
 author        = "Thomas T. Jarløv (https://github.com/ThomasTJdev)"
 description   = "API for www.eloverblik.dk"
 license       = "MIT"
-skipDirs      = @["screenshots"]
 installDirs   = @["config", "src"]
 
 
