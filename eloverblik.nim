@@ -113,7 +113,7 @@ proc sendMqtt(client: MqttInfo, data: string) {.async.} =
   await sleepAsync(2000) # TODO removed
   await ctx.publish(client.topic, data, 2, true)
   await sleepAsync(2000) # TODO removed
-  await ctx.close()
+  await ctx.disconnect()
 
 
 proc getMonth(m: string): Month =
@@ -422,9 +422,13 @@ proc requestData(actualToken, name, meeteringPoint, url: string): string =
 
   client.headers = newHttpHeaders({ "Authorization": "Bearer " & actualToken, "Content-Type": "application/json" })
 
-  return ("\"" & name & "\": [" &
-            formatResult(client.postContent(url, body = body.format(meeteringPoint))) & "]"
-          )
+  try:
+    let jsonRaw = client.postContent(url, body = body.format(meeteringPoint))
+    result = ("\"" & name & "\": [" & formatResult(jsonRaw) & "]")
+
+  except HttpRequestError:
+    echo "Err: " & $getCurrentExceptionMsg()
+    return result
 
 
 proc apiRun(ctx: MqttCtx, mqttInfo: MqttInfo, elo: Eloverblik) {.async.} =
@@ -437,7 +441,7 @@ proc apiRun(ctx: MqttCtx, mqttInfo: MqttInfo, elo: Eloverblik) {.async.} =
     monthNew: bool
     weekNew: bool
     dayNew: bool
-    json = "{\"eloverblik\":{"
+    json: string
 
   let
     monthUrl  = datesPredefined("Month", 1, "Year")
@@ -449,32 +453,30 @@ proc apiRun(ctx: MqttCtx, mqttInfo: MqttInfo, elo: Eloverblik) {.async.} =
     dayUrl    = datesPredefined("Day", 1, "Year")
     day       = requestData(actualToken, "day", elo.meeteringPoint, dayUrl)
 
-  if month != eldata.lastMonth:
+  if month != eldata.lastMonth and month != "":
     monthNew = true
     eldata.lastMonth = month
     json.add(month)
 
-  if week != eldata.lastWeek:
+  if week != eldata.lastWeek and week != "":
     weekNew = true
     eldata.lastWeek = week
     if monthNew:
       json.add(",")
     json.add(week)
 
-  if day != eldata.lastDay:
+  if day != eldata.lastDay and day != "":
     dayNew = true
     eldata.lastDay = day
     if monthNew or weekNew:
       json.add(",")
     json.add(day)
 
-  json.add("}}")
-
   when defined(dev):
-    echo json
+    echo "{\"eloverblik\":{" & json & "}}"
 
   if monthNew == true or weekNew == true or dayNew == true:
-    await ctx.publish(mqttInfo.topic, json, 2, true)
+    await ctx.publish(mqttInfo.topic, "{\"eloverblik\":{" & json & "}}", 2, true)
 
 
 proc apiSetup() {.async.} =
@@ -494,7 +496,7 @@ proc apiSetup() {.async.} =
     await sleepAsync(43200 * 1000)
     await apiRun(ctx, mqttInfo, eloverblik)
 
-  await ctx.close()
+  await ctx.disconnect()
 
 when isMainModule:
   waitFor apiSetup()
