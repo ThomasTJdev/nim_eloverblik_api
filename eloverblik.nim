@@ -473,8 +473,8 @@ proc apiRun(ctx: MqttCtx, mqttInfo: MqttInfo, elo: Eloverblik) {.async.} =
   when defined(dev):
     echo json
 
-  #if monthNew == true or weekNew == true or dayNew == true:
-  #  await ctx.publish(mqttInfo.topic, json, 2, true)
+  if monthNew == true or weekNew == true or dayNew == true:
+    await ctx.publish(mqttInfo.topic, json, 2, true)
 
 
 proc apiSetup() {.async.} =
