@@ -1,7 +1,6 @@
 # Copyright 2020 - Thomas T. Jarløv
 
 import httpClient, json, strutils, nmqtt, parsecfg, asyncdispatch, times
-import nmqtt
 
 type
   MqttInfo* = object
