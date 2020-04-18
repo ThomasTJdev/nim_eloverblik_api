@@ -433,7 +433,7 @@ proc requestData(actualToken, name, meeteringPoint, url: string): string =
     return result
 
 
-proc apiRun(ctx: MqttCtx, mqttInfo: MqttInfo, elo: Eloverblik) {.async.} =
+proc apiRun*(ctx: MqttCtx, mqttInfo: MqttInfo, elo: Eloverblik) {.async.} =
   ## Run the api
 
   let actualToken = eloverblikGetToken(eloverblik.refreshToken)
