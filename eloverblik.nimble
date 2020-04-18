@@ -1,7 +1,7 @@
 # Copyright 2020 - Thomas T. Jarløv
 
 # Package
-version       = "0.0.5"
+version       = "0.0.6"
 author        = "Thomas T. Jarløv (https://github.com/ThomasTJdev)"
 description   = "API for www.eloverblik.dk"
 license       = "MIT"
