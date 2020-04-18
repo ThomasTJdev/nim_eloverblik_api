@@ -169,10 +169,13 @@ proc formatResult(json: string): string =
         for a4 in a3["Point"]:
           let usage = a4["out_Quantity.quantity"].getStr()
 
+          if usage == "":
+            return "{}"
+
           if result != "":
             result.add(",")
 
-          result.add(("{\"start\":\"$1\",\"end\":\"$2\",\"usage\":\"$3\",\"unit\":\"$4\"}").format(startDate,endDate,usage,unit))
+          result.add(("{\"start\":\"$1\",\"end\":\"$2\",\"usage\":\"$3\",\"unit\":\"$4\"}").format(startDate, endDate, usage, unit))
 
   return result
 
@@ -425,12 +428,18 @@ proc requestData(actualToken, name, meeteringPoint, url: string): string =
   client.headers = newHttpHeaders({ "Authorization": "Bearer " & actualToken, "Content-Type": "application/json" })
 
   try:
-    let jsonRaw = client.postContent(url, body = body.format(meeteringPoint))
-    result = ("\"" & name & "\": [" & formatResult(jsonRaw) & "]")
+    let
+      jsonRaw    = client.postContent(url, body = body.format(meeteringPoint))
+      jsonFormat = formatResult(jsonRaw)
+
+    if jsonFormat == "":
+      return ""
+
+    result = ("\"" & name & "\": [" & jsonFormat & "]")
 
   except HttpRequestError:
     echo "Err: " & $getCurrentExceptionMsg()
-    return result
+    return ""
 
 
 proc apiRun*(ctx: MqttCtx, mqttInfo: MqttInfo, elo: Eloverblik) {.async.} =
