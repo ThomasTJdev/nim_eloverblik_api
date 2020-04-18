@@ -515,7 +515,7 @@ proc apiSetup() {.async.} =
   if mqttInfo.autoDiscover:
     const
       discoveryTopic  = "home/sensor/eloverblik/elforbrug_"
-      discovery       = """{"name": "Elforbrug $1", "icon": "mdi:chart-bar", "unit_of_measurement": "kWh", "state_topic": "home/sensor/eloverblik",  "value_template": "{{ value_json['eloverblik']['$1'][0]['usage']}}"}"""
+      discovery       = """{"name": "Elforbrug $1", "icon": "mdi:chart-bar", "unique_id": "elforbrug_$1", "unit_of_measurement": "kWh", "state_topic": "home/sensor/eloverblik",  "value_template": "{{ value_json['eloverblik']['$1'][0]['usage']}}"}"""
 
     for i in ["day", "week", "month"]:
       await ctx.publish(discoveryTopic & i & "/config", discovery.format(i), 0, false)
