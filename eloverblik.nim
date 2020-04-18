@@ -11,6 +11,7 @@ type
     topic*: string
     ssl*: bool
     clientname*: string
+    autoDiscover*: bool
 
   Eloverblik* = object
     refreshToken*: string
@@ -58,6 +59,7 @@ proc eloverblikLoadData*(configPath = "config/config.cfg") =
     topic = dict.getSectionValue("MQTT","topic")
     ssl = parseBool(dict.getSectionValue("MQTT","ssl"))
     clientname = dict.getSectionValue("MQTT","clientname")
+    autoDiscover = parseBool(dict.getSectionValue("Hassio","autoDiscover"))
 
     rtoken = dict.getSectionValue("Eloverblik","refreshToken")
     mpoint = dict.getSectionValue("Eloverblik","meeteringPoint")
@@ -76,6 +78,7 @@ proc eloverblikLoadData*(configPath = "config/config.cfg") =
   mqttInfo.topic = topic
   mqttInfo.ssl = ssl
   mqttInfo.clientname = clientname
+  mqttInfo.autoDiscover = autoDiscover
 
   eloverblik.refreshToken = rtoken
   eloverblik.meeteringPoint = mpoint
