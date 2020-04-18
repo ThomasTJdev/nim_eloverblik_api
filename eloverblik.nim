@@ -177,10 +177,10 @@ proc formatResult(json: string): string =
   return result
 
 
-proc datesPredefined(choice: string, backCount: int, aggreation: string): string =
+proc datesPredefined*(choice: string, backCount: int, aggreation: string): string =
   ## Return predefined choices
 
-  const monthSeconds = 86400 * 24 * 30
+  #const monthSeconds = 86400 * 24 * 30
 
   let
     cDateEpoch    = toInt(epochTime())
@@ -190,7 +190,7 @@ proc datesPredefined(choice: string, backCount: int, aggreation: string): string
     cMonthNr      = substr(cDate, 5, 6)
     cMonth        = getMonth(cMonthNr)
     cDay          = substr(cDate, 8, 9)
-    cDaysInMonth  = $getDaysInMonth(getMonth(cMonthNr), parseInt(cDate.substr(0,3)))
+    #cDaysInMonth  = $getDaysInMonth(getMonth(cMonthNr), parseInt(cDate.substr(0,3)))
 
   var
     toDate: string
@@ -218,8 +218,8 @@ proc datesPredefined(choice: string, backCount: int, aggreation: string): string
 
     let
       sMonthNr        = if ($sMonthNrTmp).len() == 1: "0" & $sMonthNrTmp else: $sMonthNrTmp
-      sMonth          = getMonth(sMonthNr)
-      sDaysInMonth    = $(getDaysInMonth(sMonth, parseInt(sYear)))
+      #sMonth          = getMonth(sMonthNr)
+      #sDaysInMonth    = $(getDaysInMonth(sMonth, parseInt(sYear)))
 
     # Ready to set start date
     toDate = sYear & "-" & sMonthNr & "-" & "01"
@@ -243,9 +243,9 @@ proc datesPredefined(choice: string, backCount: int, aggreation: string): string
       eYear       = eYear - 1
 
     eMonthNr        = if ($eMonthNrTmp).len() == 1: "0" & $eMonthNrTmp else: $eMonthNrTmp
-    let
-      eMonth          = getMonth(eMonthNr)
-      eDaysInMonth    = $getDaysInMonth(eMonth, eYear)
+    #let
+      #eMonth          = getMonth(eMonthNr)
+      #eDaysInMonth    = $getDaysInMonth(eMonth, eYear)
 
     if backCount == 1:
       fromDate = $eYear & "-" & eMonthNr & "-" & "01" #eDaysInMonth
