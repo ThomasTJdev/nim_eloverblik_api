@@ -102,7 +102,7 @@ proc eloverblikGetToken*(refreshToken: string): string =
   return resp["result"].getStr()
 
 
-proc sendMqtt(client: MqttInfo, data: string) {.async.} =
+proc sendMqtt*(client: MqttInfo, data: string) {.async.} =
   ## Send data through mqtt
 
   let ctx = newMqttCtx(client.clientname)
@@ -113,7 +113,7 @@ proc sendMqtt(client: MqttInfo, data: string) {.async.} =
 
   await ctx.start()
   await sleepAsync(2000) # TODO removed
-  await ctx.publish(client.topic, data, 2, true)
+  await ctx.publish(client.topic, data, 0, false)
   await sleepAsync(2000) # TODO removed
   await ctx.disconnect()
 
