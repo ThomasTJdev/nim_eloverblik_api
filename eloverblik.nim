@@ -498,6 +498,13 @@ proc apiSetup() {.async.} =
 
   eloverblikLoadData()
 
+  if eloverblik.refreshToken == "":
+    echo "Your refresh token is missing. Add it in the config.cfg. Quitting.."
+    quit()
+  if eloverblik.meeteringPoint == "":
+    echo "Your meetering point is missing. Add it in the config.cfg. Quitting.."
+    quit()
+
   let ctx = newMqttCtx(mqttInfo.clientname)
   ctx.set_auth(mqttInfo.username, mqttInfo.password)
   ctx.set_host(mqttInfo.host, mqttInfo.port, mqttInfo.ssl)
