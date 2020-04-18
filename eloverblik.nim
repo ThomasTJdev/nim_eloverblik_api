@@ -478,7 +478,10 @@ proc apiRun*(ctx: MqttCtx, mqttInfo: MqttInfo, elo: Eloverblik) {.async.} =
     echo "{\"eloverblik\":{" & json & "}}"
 
   if monthNew == true or weekNew == true or dayNew == true:
-    await ctx.publish(mqttInfo.topic, "{\"eloverblik\":{" & json & "}}", 2, true)
+    if mqttInfo.autoDiscover:
+      await ctx.publish("home/sensor/eloverblik", "{\"eloverblik\":{" & json & "}}", 0, false)
+    else:
+      await ctx.publish(mqttInfo.topic, "{\"eloverblik\":{" & json & "}}", 0, false)
 
 
 proc apiSetup() {.async.} =
@@ -491,6 +494,18 @@ proc apiSetup() {.async.} =
   ctx.set_host(mqttInfo.host, mqttInfo.port, mqttInfo.ssl)
   ctx.set_ping_interval(60)
   await ctx.start()
+  await sleepAsync(3000)
+
+  if mqttInfo.autoDiscover:
+    const
+      discoveryTopic  = "home/sensor/eloverblik/elforbrug_"
+      discovery       = """{"name": "Elforbrug $1", "icon": "mdi:chart-bar", "unit_of_measurement": "kWh", "state_topic": "home/sensor/eloverblik",  "value_template": "{{ value_json['eloverblik']['$1'][0]['usage']}}"}"""
+
+    for i in ["day", "week", "month"]:
+      await ctx.publish(discoveryTopic & i & "/config", discovery.format(i), 0, false)
+
+    await sleepAsync(3000)
+
   if eloverblik.runOnBoot:
     await apiRun(ctx, mqttInfo, eloverblik)
 
