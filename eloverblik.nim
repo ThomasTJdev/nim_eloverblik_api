@@ -510,7 +510,7 @@ proc apiSetup() {.async.} =
     await apiRun(ctx, mqttInfo, eloverblik)
 
   while true:
-    await sleepAsync(43200 * 1000)
+    await sleepAsync(1800 * 1000)
     await apiRun(ctx, mqttInfo, eloverblik)
 
   await ctx.disconnect()
