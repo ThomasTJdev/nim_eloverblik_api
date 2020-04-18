@@ -35,7 +35,11 @@ You have to copy the `config_default.cfg` to `config.cfg` and adjust the options
 ## Home Assistant (Hass.io)
 The original purpose of this API was to enable an overview in HA. So running the API as a binary, it'll sends the stats everyday to HA, and you can visualize them - e.g. using mini-graph (HACS plugin).
 
-Buuuut, you might want to use Node red to do the automation. You either follow the steps below to create the flow, or you can copy and paste the predefined flow. After that generate a graph with mini-graph in Lovelace and enjoy.
+3 entities will automatic be added to Home assistant: Daily usage (`sensor.elforbrug_day`), Weekly usage (`sensor.elforbrug_week`) and Monthly usage (`sensor.elforbrug_month`). If you **dont** want the automatic creating of sensors, set the `autoDiscover=false` and follow the guide below with Node red.
+
+You only need to update the `config.cfg` with details on below the fields `[MQTT]`, `[Eloverblik]` and `[Hassio]`. The topic in `[MQTT]` will not be used, if you are using the autoDiscovery function.
+
+~~Buuuut, you might want to use Node red to do the automation. You either follow the steps below to create the flow, or you can copy and paste the predefined flow. After that generate a graph with mini-graph in Lovelace and enjoy.~~
 
 ~~You need to let the program run, cause it'll gather the data once a day - set the time in the `config.cfg`. A good choice would be 23:30 - the data is updated around 23:00.~~ This was quite annoying while testing, so now the api just runs every half hour. If there's no changes, nothing is send to HA with MQTT.
 
@@ -63,6 +67,8 @@ sudo systemctl status eloverblik
 
 
 ### Node red
+
+**ONLY DO THIS IF YOU HAVE DISABLED AUTODISCOVERY**
 
 We are making 3 nodes for: Daily usage, Weekly usage, Monthly usage.
 
@@ -336,6 +342,8 @@ let result = eloverblikTimeSeries(eloverblik, elperiode)
 ```
 
 You do not need to fill out the MQTT in the `config.cfg` file.
+
+**IMPORTANT:** You should set the `autoDiscovery=false`, since that will publish MQTT-messages specific for Home Assistant.
 
 ### Options
 
