@@ -37,6 +37,8 @@ The original purpose of this API was to enable an overview in HA. So running the
 
 3 entities will automatic be added to Home assistant: Daily usage (`sensor.elforbrug_day`), Weekly usage (`sensor.elforbrug_week`) and Monthly usage (`sensor.elforbrug_month`). If you **dont** want the automatic creating of sensors, set the `autoDiscover=false` and follow the guide below with Node red.
 
+A birth message is also supported - if Hass restarts, the config needs to be resend, otherwise the sensor will be inactive. You can setup a birth topic and birth payload inside Hass, which will be send on each boot - we are using that payload to resend the sensors configuration.
+
 You only need to update the `config.cfg` with details on below the fields `[MQTT]`, `[Eloverblik]` and `[Hassio]`. The topic in `[MQTT]` will not be used, if you are using the autoDiscovery function.
 
 ~~Buuuut, you might want to use Node red to do the automation. You either follow the steps below to create the flow, or you can copy and paste the predefined flow. After that generate a graph with mini-graph in Lovelace and enjoy.~~
