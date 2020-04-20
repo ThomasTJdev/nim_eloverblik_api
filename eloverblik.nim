@@ -11,7 +11,11 @@ type
     topic*: string
     ssl*: bool
     clientname*: string
+
+  Hassio* = object
     autoDiscover*: bool
+    birthTopic*: string
+    birthPayload*: string
 
   Eloverblik* = object
     refreshToken*: string
@@ -33,17 +37,19 @@ type
 
 var
   mqttInfo*: MqttInfo
+  hass*: Hassio
   eloverblik*: Eloverblik
   elperiode*: Elperiode
   eldata*: Eldata
 
 
-
 const
-  urlBase = "https://api.eloverblik.dk/CustomerApi/"
+  urlBase         = "https://api.eloverblik.dk/CustomerApi/"
   urlRefreshToken = "api/Token"
-  urlTimeSeries = "api/MeterData/GetTimeSeries/$1/$2/$3"
-  body = "{\"meteringPoints\": {\"meteringPoint\": [\"$1\"]} }"
+  urlTimeSeries   = "api/MeterData/GetTimeSeries/$1/$2/$3"
+  body            = "{\"meteringPoints\": {\"meteringPoint\": [\"$1\"]} }"
+  discoveryTopic  = "home/sensor/eloverblik/elforbrug_"
+  discovery       = """{"name": "Elforbrug $1", "icon": "mdi:chart-bar", "unique_id": "elforbrug_$1", "unit_of_measurement": "kWh", "state_topic": "home/sensor/eloverblik",  "value_template": "{{ value_json['eloverblik']['$1'][0]['usage']}}"}"""
 
 
 proc eloverblikLoadData*(configPath = "config/config.cfg") =
@@ -59,7 +65,10 @@ proc eloverblikLoadData*(configPath = "config/config.cfg") =
     topic = dict.getSectionValue("MQTT","topic")
     ssl = parseBool(dict.getSectionValue("MQTT","ssl"))
     clientname = dict.getSectionValue("MQTT","clientname")
+
     autoDiscover = parseBool(dict.getSectionValue("Hassio","autoDiscover"))
+    birthTopic = dict.getSectionValue("Hassio","birthTopic")
+    birthPayload = dict.getSectionValue("Hassio","birthPayload")
 
     rtoken = dict.getSectionValue("Eloverblik","refreshToken")
     mpoint = dict.getSectionValue("Eloverblik","meeteringPoint")
@@ -71,23 +80,26 @@ proc eloverblikLoadData*(configPath = "config/config.cfg") =
     sback = dict.getSectionValue("Periode","daysSpecific")
     saggre = dict.getSectionValue("Periode","aggregationSpecific")
 
-  mqttInfo.host = host
-  mqttInfo.port = port
-  mqttInfo.username = username
-  mqttInfo.password = password
-  mqttInfo.topic = topic
-  mqttInfo.ssl = ssl
+  mqttInfo.host       = host
+  mqttInfo.port       = port
+  mqttInfo.username   = username
+  mqttInfo.password   = password
+  mqttInfo.topic      = topic
+  mqttInfo.ssl        = ssl
   mqttInfo.clientname = clientname
-  mqttInfo.autoDiscover = autoDiscover
+
+  hass.autoDiscover   = autoDiscover
+  hass.birthTopic     = birthTopic
+  hass.birthPayload   = birthPayload
 
   eloverblik.refreshToken = rtoken
   eloverblik.meeteringPoint = mpoint
   #eloverblik.refreshTime = rtime
   eloverblik.runOnBoot = runOnBoot
 
-  elperiode.daysBack = dback
-  elperiode.daysBackAggr = daggre
-  elperiode.daysSpecific = sback
+  elperiode.daysBack         = dback
+  elperiode.daysBackAggr     = daggre
+  elperiode.daysSpecific     = sback
   elperiode.daysSpecificAggr = saggre
 
 proc eloverblikGetToken*(refreshToken: string): string =
@@ -487,7 +499,7 @@ proc apiRun*(ctx: MqttCtx, mqttInfo: MqttInfo, elo: Eloverblik) {.async.} =
     echo "{\"eloverblik\":{" & json & "}}"
 
   if monthNew == true or weekNew == true or dayNew == true:
-    if mqttInfo.autoDiscover:
+    if hass.autoDiscover:
       await ctx.publish("home/sensor/eloverblik", "{\"eloverblik\":{" & json & "}}", 0, false)
     else:
       await ctx.publish(mqttInfo.topic, "{\"eloverblik\":{" & json & "}}", 0, false)
@@ -512,14 +524,19 @@ proc apiSetup() {.async.} =
   await ctx.start()
   await sleepAsync(3000)
 
-  if mqttInfo.autoDiscover:
-    const
-      discoveryTopic  = "home/sensor/eloverblik/elforbrug_"
-      discovery       = """{"name": "Elforbrug $1", "icon": "mdi:chart-bar", "unique_id": "elforbrug_$1", "unit_of_measurement": "kWh", "state_topic": "home/sensor/eloverblik",  "value_template": "{{ value_json['eloverblik']['$1'][0]['usage']}}"}"""
+  proc rediscoverOnHassRestart(topic, message: string) =
+    ## This will resend the config for the devices, when it receives
+    ## Hassio birth message. This message needs to be setup through
+    ## Hassio automation.
+    if message == hass.birthPayload:
+      for i in ["day", "week", "month"]:
+        waitFor ctx.publish(discoveryTopic & i & "/config", discovery.format(i), 0, true)
 
-    for i in ["day", "week", "month"]:
-      await ctx.publish(discoveryTopic & i & "/config", discovery.format(i), 0, true)
+  if hass.autoDiscover:
+    await ctx.subscribe(hass.birthTopic, 0, rediscoverOnHassRestart)
 
+  if hass.autoDiscover:
+    rediscoverOnHassRestart(hass.birthTopic, hass.birthPayload)
     await sleepAsync(3000)
 
   if eloverblik.runOnBoot:
